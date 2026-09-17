@@ -11,9 +11,11 @@ interface ModalProps {
   closeOnBackdropClick?: boolean;
   /** Classe extra no .portal-modal (ex: "confirm-box" para limitar a largura). */
   modalClassName?: string;
+  /** Conteúdo extra no cabeçalho, entre o título e o X (ex: botão de excluir). */
+  headerExtra?: ReactNode;
 }
 
-export function Modal({ title, onClose, wide, footer, children, closeOnBackdropClick, modalClassName }: ModalProps) {
+export function Modal({ title, onClose, wide, footer, children, closeOnBackdropClick, modalClassName, headerExtra }: ModalProps) {
   return createPortal(
     <div
       className="portal-overlay"
@@ -22,9 +24,12 @@ export function Modal({ title, onClose, wide, footer, children, closeOnBackdropC
       <div className={`portal-modal${wide ? " wide" : ""}${modalClassName ? " " + modalClassName : ""}`}>
         <div className="portal-head">
           <h2>{title}</h2>
-          <button type="button" className="close-x" onClick={onClose}>
-            &times;
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {headerExtra}
+            <button type="button" className="close-x" onClick={onClose}>
+              &times;
+            </button>
+          </div>
         </div>
         <div className="portal-body">{children}</div>
         {footer && <div className="portal-foot">{footer}</div>}

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type AppState, type Cartao, type Categoria, type Conta, type Meta, type TipoMovimentoMeta, defaultState, uid } from "./schema";
+import { type AppState, type Cartao, type Categoria, type Conta, type Meta, type Orcamento, type TipoMovimentoMeta, defaultState, uid } from "./schema";
 
 function inicioMesAtual(): Date {
   const d = new Date();
@@ -44,13 +44,19 @@ interface AppStore {
   setCategoriaArquivada: (id: string, arquivada: boolean) => void;
   deleteCategoria: (id: string) => void;
   deleteCategoriasComFilhas: (ids: string[]) => void;
+  /** Garante a categoria única de "Aportes" (investimento) usada pelo orçamento, criando-a se preciso. */
+  getOrCreateCategoriaOrcamentoInvestimento: () => Categoria;
+
+  saveOrcamento: (orcamento: Orcamento) => void;
+  addOrcamentos: (orcamentos: Orcamento[]) => void;
+  deleteOrcamento: (id: string) => void;
 }
 
 function recalcularValorAtual(movimentos: Meta["movimentos"]): number {
   return movimentos.reduce((sum, mv) => sum + (mv.tipo === "saida" ? -mv.valor : mv.valor), 0);
 }
 
-export const useAppStore = create<AppStore>((set) => ({
+export const useAppStore = create<AppStore>((set, get) => ({
   data: defaultState(),
   connected: false,
   valoresOcultos: false,
@@ -195,4 +201,46 @@ export const useAppStore = create<AppStore>((set) => ({
         },
       };
     }),
+
+  getOrCreateCategoriaOrcamentoInvestimento: () => {
+    const categorias = get().data.categorias;
+    const existente = categorias.find(
+      (c) => c.tipo === "investimento" && !c.categoriaPaiId && (c.nome === "Aportes" || c.nome === "Aportes (orçamento)"),
+    );
+    if (!existente) {
+      const nova: Categoria = {
+        id: uid("cat"),
+        nome: "Aportes",
+        tipo: "investimento",
+        categoriaPaiId: null,
+        cor: "#2E5C8A",
+        icone: "investment",
+        arquivada: false,
+        ocultarGraficos: false,
+      };
+      set((s) => ({ data: { ...s.data, categorias: [...s.data.categorias, nova] } }));
+      return nova;
+    }
+    if (existente.nome !== "Aportes") {
+      const renomeada: Categoria = { ...existente, nome: "Aportes" };
+      set((s) => ({
+        data: { ...s.data, categorias: s.data.categorias.map((c) => (c.id === existente.id ? renomeada : c)) },
+      }));
+      return renomeada;
+    }
+    return existente;
+  },
+
+  saveOrcamento: (orcamento) =>
+    set((s) => {
+      const idx = s.data.orcamentos.findIndex((o) => o.id === orcamento.id);
+      const orcamentos = idx >= 0 ? s.data.orcamentos.map((o, i) => (i === idx ? orcamento : o)) : [...s.data.orcamentos, orcamento];
+      return { data: { ...s.data, orcamentos } };
+    }),
+
+  addOrcamentos: (orcamentos) =>
+    set((s) => ({ data: { ...s.data, orcamentos: [...s.data.orcamentos, ...orcamentos] } })),
+
+  deleteOrcamento: (id) =>
+    set((s) => ({ data: { ...s.data, orcamentos: s.data.orcamentos.filter((o) => o.id !== id) } })),
 }));

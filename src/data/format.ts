@@ -25,6 +25,12 @@ export function fmtMoneyIn(v: number, moeda: string, hidden = false): string {
   }
 }
 
+export function fmtMoneyShort(v: number): string {
+  const abs = Math.abs(v);
+  if (abs >= 1000) return (v < 0 ? "-" : "") + "R$ " + (abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1).replace(".", ",") + "k";
+  return "R$ " + v.toFixed(0);
+}
+
 export function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
   const [y, m, day] = d.split("-");
@@ -33,6 +39,16 @@ export function fmtDate(d: string | null | undefined): string {
 
 export function monthKey(d: Date): string {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+}
+
+const MONTH_NAMES_PT_FULL = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+export function fmtMonthLabel(d: Date): string {
+  const nome = MONTH_NAMES_PT_FULL[d.getMonth()];
+  return nome.charAt(0).toUpperCase() + nome.slice(1) + " de " + d.getFullYear();
 }
 
 export function todayStr(): string {

@@ -7,6 +7,7 @@ import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Categorias } from "./screens/Categorias/Categorias";
 import { Contas } from "./screens/Contas/Contas";
 import { Metas } from "./screens/Metas/Metas";
+import { Orcamento } from "./screens/Orcamento/Orcamento";
 import { Tags } from "./screens/Tags/Tags";
 
 function ConnectScreen() {
@@ -88,6 +89,7 @@ const SCREENS = [
   { id: "cartoes", label: "Cartões", Component: Cartoes },
   { id: "categorias", label: "Categorias", Component: Categorias },
   { id: "metas", label: "Metas", Component: Metas },
+  { id: "orcamento", label: "Orçamento", Component: Orcamento },
   { id: "tags", label: "Tags", Component: Tags },
 ] as const;
 
