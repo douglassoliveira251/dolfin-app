@@ -34,3 +34,12 @@ export function fmtDate(d: string | null | undefined): string {
 export function monthKey(d: Date): string {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
 }
+
+export function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function ultimoDiaMes(monthDate: Date): string {
+  const d = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  return d.toISOString().slice(0, 10);
+}

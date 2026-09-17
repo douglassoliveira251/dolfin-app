@@ -1,3 +1,4 @@
+import { COLOR_PRESETS } from "./colors";
 import { type AppState, defaultState, normalizeState, uid } from "./schema";
 import { useAppStore } from "./store";
 
@@ -113,11 +114,6 @@ function categoriasSeedPadrao() {
   });
   return cats;
 }
-
-const COLOR_PRESETS = [
-  "#AD4B34", "#E0562E", "#B8863A", "#C9A227", "#3FA34D", "#2E7D5B", "#173E37", "#3C7A8A",
-  "#1FA6A6", "#2E5C8A", "#6E4E9E", "#D6336C", "#8A5A44", "#5E6B4A", "#9C978A", "#4A473E",
-];
 
 export async function openExisting(): Promise<{ ok: true } | { ok: false; error: string }> {
   try {

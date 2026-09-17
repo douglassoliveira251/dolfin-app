@@ -3,6 +3,7 @@ import { Icon } from "./components/icons/Icon";
 import { ToastHost } from "./components/Toast";
 import { createNew, openExisting, tryReconnect } from "./data/persistence";
 import { useAppStore } from "./data/store";
+import { Contas } from "./screens/Contas/Contas";
 import { Tags } from "./screens/Tags/Tags";
 
 function ConnectScreen() {
@@ -75,11 +76,43 @@ function ConnectScreen() {
   );
 }
 
+/**
+ * Navegação provisória entre as telas já migradas, só para poder testá-las.
+ * Será substituída pela sidebar real quando mais telas existirem.
+ */
+const SCREENS = [
+  { id: "contas", label: "Contas", Component: Contas },
+  { id: "tags", label: "Tags", Component: Tags },
+] as const;
+
+function ConnectedApp() {
+  const [screenId, setScreenId] = useState<(typeof SCREENS)[number]["id"]>(SCREENS[0].id);
+  const Screen = SCREENS.find((s) => s.id === screenId)!.Component;
+
+  return (
+    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+      <div className="tabs-card" style={{ margin: "20px 28px 0" }}>
+        {SCREENS.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`pill-opt${screenId === s.id ? " active" : ""}`}
+            onClick={() => setScreenId(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <Screen />
+    </div>
+  );
+}
+
 function App() {
   const connected = useAppStore((s) => s.connected);
   return (
     <>
-      {connected ? <Tags /> : <ConnectScreen />}
+      {connected ? <ConnectedApp /> : <ConnectScreen />}
       <ToastHost />
     </>
   );
