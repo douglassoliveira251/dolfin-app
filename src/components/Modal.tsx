@@ -7,12 +7,19 @@ interface ModalProps {
   wide?: boolean;
   footer?: ReactNode;
   children: ReactNode;
+  /** Fecha o modal ao clicar no fundo escurecido (usado pelo ConfirmDialog). */
+  closeOnBackdropClick?: boolean;
+  /** Classe extra no .portal-modal (ex: "confirm-box" para limitar a largura). */
+  modalClassName?: string;
 }
 
-export function Modal({ title, onClose, wide, footer, children }: ModalProps) {
+export function Modal({ title, onClose, wide, footer, children, closeOnBackdropClick, modalClassName }: ModalProps) {
   return createPortal(
-    <div className="portal-overlay">
-      <div className={`portal-modal${wide ? " wide" : ""}`}>
+    <div
+      className="portal-overlay"
+      onClick={closeOnBackdropClick ? (e) => e.target === e.currentTarget && onClose() : undefined}
+    >
+      <div className={`portal-modal${wide ? " wide" : ""}${modalClassName ? " " + modalClassName : ""}`}>
         <div className="portal-head">
           <h2>{title}</h2>
           <button type="button" className="close-x" onClick={onClose}>
