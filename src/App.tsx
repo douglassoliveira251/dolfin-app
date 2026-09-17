@@ -3,6 +3,7 @@ import { Icon } from "./components/icons/Icon";
 import { ToastHost } from "./components/Toast";
 import { createNew, openExisting, tryReconnect } from "./data/persistence";
 import { useAppStore } from "./data/store";
+import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Contas } from "./screens/Contas/Contas";
 import { Tags } from "./screens/Tags/Tags";
 
@@ -82,6 +83,7 @@ function ConnectScreen() {
  */
 const SCREENS = [
   { id: "contas", label: "Contas", Component: Contas },
+  { id: "cartoes", label: "Cartões", Component: Cartoes },
   { id: "tags", label: "Tags", Component: Tags },
 ] as const;
 

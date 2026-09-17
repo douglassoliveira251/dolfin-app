@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type AppState, type Conta, defaultState, uid } from "./schema";
+import { type AppState, type Cartao, type Conta, defaultState, uid } from "./schema";
 
 function inicioMesAtual(): Date {
   const d = new Date();
@@ -29,6 +29,10 @@ interface AppStore {
   saveConta: (conta: Conta) => void;
   setContaArquivada: (id: string, arquivada: boolean) => void;
   deleteConta: (id: string) => void;
+
+  saveCartao: (cartao: Cartao) => void;
+  setCartaoArquivada: (id: string, arquivada: boolean) => void;
+  deleteCartao: (id: string) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -81,4 +85,20 @@ export const useAppStore = create<AppStore>((set) => ({
 
   deleteConta: (id) =>
     set((s) => ({ data: { ...s.data, contas: s.data.contas.filter((c) => c.id !== id) } })),
+
+  saveCartao: (cartao) =>
+    set((s) => {
+      let cartoes = cartao.padrao ? s.data.cartoes.map((c) => ({ ...c, padrao: false })) : s.data.cartoes;
+      const idx = cartoes.findIndex((c) => c.id === cartao.id);
+      cartoes = idx >= 0 ? cartoes.map((c, i) => (i === idx ? cartao : c)) : [...cartoes, cartao];
+      return { data: { ...s.data, cartoes } };
+    }),
+
+  setCartaoArquivada: (id, arquivada) =>
+    set((s) => ({
+      data: { ...s.data, cartoes: s.data.cartoes.map((c) => (c.id === id ? { ...c, arquivada } : c)) },
+    })),
+
+  deleteCartao: (id) =>
+    set((s) => ({ data: { ...s.data, cartoes: s.data.cartoes.filter((c) => c.id !== id) } })),
 }));
