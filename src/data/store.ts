@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type AppState, type Cartao, type Conta, defaultState, uid } from "./schema";
+import { type AppState, type Cartao, type Conta, type Meta, type TipoMovimentoMeta, defaultState, uid } from "./schema";
 
 function inicioMesAtual(): Date {
   const d = new Date();
@@ -33,6 +33,16 @@ interface AppStore {
   saveCartao: (cartao: Cartao) => void;
   setCartaoArquivada: (id: string, arquivada: boolean) => void;
   deleteCartao: (id: string) => void;
+
+  saveMeta: (meta: Meta) => void;
+  deleteMeta: (id: string) => void;
+  setMetaConcluida: (id: string, concluida: boolean) => void;
+  addMetaMovimento: (metaId: string, mov: { data: string; valor: number; tipo: TipoMovimentoMeta }) => void;
+  deleteMetaMovimento: (metaId: string, movId: string) => void;
+}
+
+function recalcularValorAtual(movimentos: Meta["movimentos"]): number {
+  return movimentos.reduce((sum, mv) => sum + (mv.tipo === "saida" ? -mv.valor : mv.valor), 0);
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -101,4 +111,44 @@ export const useAppStore = create<AppStore>((set) => ({
 
   deleteCartao: (id) =>
     set((s) => ({ data: { ...s.data, cartoes: s.data.cartoes.filter((c) => c.id !== id) } })),
+
+  saveMeta: (meta) =>
+    set((s) => {
+      const idx = s.data.metas.findIndex((m) => m.id === meta.id);
+      const metas = idx >= 0 ? s.data.metas.map((m, i) => (i === idx ? meta : m)) : [...s.data.metas, meta];
+      return { data: { ...s.data, metas } };
+    }),
+
+  deleteMeta: (id) => set((s) => ({ data: { ...s.data, metas: s.data.metas.filter((m) => m.id !== id) } })),
+
+  setMetaConcluida: (id, concluida) =>
+    set((s) => ({
+      data: { ...s.data, metas: s.data.metas.map((m) => (m.id === id ? { ...m, concluida } : m)) },
+    })),
+
+  addMetaMovimento: (metaId, mov) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        metas: s.data.metas.map((m) => {
+          if (m.id !== metaId) return m;
+          const movimentos = [...m.movimentos, { id: uid("metamov"), ...mov }];
+          const valorAtual = recalcularValorAtual(movimentos);
+          const concluida = m.concluida || (m.valorAlvo > 0 && valorAtual >= m.valorAlvo);
+          return { ...m, movimentos, valorAtual, concluida };
+        }),
+      },
+    })),
+
+  deleteMetaMovimento: (metaId, movId) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        metas: s.data.metas.map((m) => {
+          if (m.id !== metaId) return m;
+          const movimentos = m.movimentos.filter((mv) => mv.id !== movId);
+          return { ...m, movimentos, valorAtual: recalcularValorAtual(movimentos) };
+        }),
+      },
+    })),
 }));

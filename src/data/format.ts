@@ -43,3 +43,14 @@ export function ultimoDiaMes(monthDate: Date): string {
   const d = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
   return d.toISOString().slice(0, 10);
 }
+
+export function sortByData<T extends { data: string; hora?: string }>(itens: T[], ordenacaoDecrescente: boolean): T[] {
+  const dir = ordenacaoDecrescente === false ? 1 : -1;
+  return [...itens].sort((a, b) => {
+    const cmp = a.data.localeCompare(b.data);
+    if (cmp !== 0) return dir * cmp;
+    const ha = a.hora || "";
+    const hb = b.hora || "";
+    return dir * ha.localeCompare(hb);
+  });
+}

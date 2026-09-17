@@ -5,6 +5,7 @@ import { createNew, openExisting, tryReconnect } from "./data/persistence";
 import { useAppStore } from "./data/store";
 import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Contas } from "./screens/Contas/Contas";
+import { Metas } from "./screens/Metas/Metas";
 import { Tags } from "./screens/Tags/Tags";
 
 function ConnectScreen() {
@@ -84,6 +85,7 @@ function ConnectScreen() {
 const SCREENS = [
   { id: "contas", label: "Contas", Component: Contas },
   { id: "cartoes", label: "Cartões", Component: Cartoes },
+  { id: "metas", label: "Metas", Component: Metas },
   { id: "tags", label: "Tags", Component: Tags },
 ] as const;
 
