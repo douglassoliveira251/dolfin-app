@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type AppState, type Cartao, type Conta, type Meta, type TipoMovimentoMeta, defaultState, uid } from "./schema";
+import { type AppState, type Cartao, type Categoria, type Conta, type Meta, type TipoMovimentoMeta, defaultState, uid } from "./schema";
 
 function inicioMesAtual(): Date {
   const d = new Date();
@@ -39,6 +39,11 @@ interface AppStore {
   setMetaConcluida: (id: string, concluida: boolean) => void;
   addMetaMovimento: (metaId: string, mov: { data: string; valor: number; tipo: TipoMovimentoMeta }) => void;
   deleteMetaMovimento: (metaId: string, movId: string) => void;
+
+  saveCategoria: (categoria: Categoria) => void;
+  setCategoriaArquivada: (id: string, arquivada: boolean) => void;
+  deleteCategoria: (id: string) => void;
+  deleteCategoriasComFilhas: (ids: string[]) => void;
 }
 
 function recalcularValorAtual(movimentos: Meta["movimentos"]): number {
@@ -151,4 +156,43 @@ export const useAppStore = create<AppStore>((set) => ({
         }),
       },
     })),
+
+  saveCategoria: (categoria) =>
+    set((s) => {
+      const idx = s.data.categorias.findIndex((c) => c.id === categoria.id);
+      const categorias = idx >= 0 ? s.data.categorias.map((c, i) => (i === idx ? categoria : c)) : [...s.data.categorias, categoria];
+      return { data: { ...s.data, categorias } };
+    }),
+
+  setCategoriaArquivada: (id, arquivada) =>
+    set((s) => ({
+      data: { ...s.data, categorias: s.data.categorias.map((c) => (c.id === id ? { ...c, arquivada } : c)) },
+    })),
+
+  deleteCategoria: (id) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        categorias: s.data.categorias.filter((c) => c.id !== id),
+        lancamentos: s.data.lancamentos.map((l) =>
+          l.categoriasIds.includes(id) ? { ...l, categoriasIds: l.categoriasIds.filter((cid) => cid !== id) } : l,
+        ),
+      },
+    })),
+
+  deleteCategoriasComFilhas: (ids) =>
+    set((s) => {
+      const idSet = new Set(ids);
+      return {
+        data: {
+          ...s.data,
+          categorias: s.data.categorias.filter((c) => !idSet.has(c.id)),
+          lancamentos: s.data.lancamentos.map((l) =>
+            l.categoriasIds.some((cid) => idSet.has(cid))
+              ? { ...l, categoriasIds: l.categoriasIds.filter((cid) => !idSet.has(cid)) }
+              : l,
+          ),
+        },
+      };
+    }),
 }));
