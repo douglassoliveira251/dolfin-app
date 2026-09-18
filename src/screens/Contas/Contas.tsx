@@ -8,6 +8,7 @@ import { ehNegativo, fmtMoneyIn, todayStr, ultimoDiaMes } from "../../data/forma
 import { persist } from "../../data/persistence";
 import { useAppStore } from "../../data/store";
 import { ContaModal } from "./ContaModal";
+import { ExtratoContaModal } from "./ExtratoContaModal";
 
 export function Contas() {
   const data = useAppStore((s) => s.data);
@@ -17,6 +18,7 @@ export function Contas() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [extratoContaId, setExtratoContaId] = useState<string | null>(null);
   const [mostrarArquivadas, setMostrarArquivadas] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirm();
 
@@ -93,7 +95,7 @@ export function Contas() {
               key={c.id}
               className={`card${c.padrao ? " ribbon-padrao" : ""}`}
               style={{ cursor: "pointer" }}
-              onClick={() => showToast("Extrato em breve.")}
+              onClick={() => setExtratoContaId(c.id)}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
@@ -181,6 +183,7 @@ export function Contas() {
       )}
 
       {modalOpen && <ContaModal contaId={editingId} onClose={() => setModalOpen(false)} />}
+      {extratoContaId && <ExtratoContaModal contaId={extratoContaId} onClose={() => setExtratoContaId(null)} />}
       {confirmDialog}
     </div>
   );

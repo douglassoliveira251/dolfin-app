@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "./components/icons/Icon";
+import { Sidebar } from "./components/Sidebar";
+import { Topbar } from "./components/Topbar";
 import { ToastHost } from "./components/Toast";
 import { createNew, openExisting, tryReconnect } from "./data/persistence";
 import { useAppStore } from "./data/store";
@@ -85,43 +87,31 @@ function ConnectScreen() {
   );
 }
 
-/**
- * Navegação provisória entre as telas já migradas, só para poder testá-las.
- * Será substituída pela sidebar real quando mais telas existirem.
- */
-const SCREENS = [
-  { id: "dashboard", label: "Dashboard", Component: Dashboard },
-  { id: "contas", label: "Contas", Component: Contas },
-  { id: "cartoes", label: "Cartões", Component: Cartoes },
-  { id: "categorias", label: "Categorias", Component: Categorias },
-  { id: "configuracoes", label: "Configurações", Component: Configuracoes },
-  { id: "investimentos", label: "Investimentos", Component: Investimentos },
-  { id: "lancamentos", label: "Lançamentos", Component: Lancamentos },
-  { id: "metas", label: "Metas", Component: Metas },
-  { id: "orcamento", label: "Orçamento", Component: Orcamento },
-  { id: "relatorios", label: "Relatórios", Component: Relatorios },
-  { id: "tags", label: "Tags", Component: Tags },
-] as const;
+const SCREEN_COMPONENTS = {
+  dashboard: Dashboard,
+  lancamentos: Lancamentos,
+  contas: Contas,
+  cartoes: Cartoes,
+  categorias: Categorias,
+  metas: Metas,
+  investimentos: Investimentos,
+  orcamento: Orcamento,
+  tags: Tags,
+  relatorios: Relatorios,
+  configuracoes: Configuracoes,
+} as const;
 
 function ConnectedApp() {
-  const [screenId, setScreenId] = useState<(typeof SCREENS)[number]["id"]>(SCREENS[0].id);
-  const Screen = SCREENS.find((s) => s.id === screenId)!.Component;
+  const screenId = useAppStore((s) => s.screenId);
+  const Screen = SCREEN_COMPONENTS[screenId];
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-      <div className="tabs-card" style={{ margin: "20px 28px 0" }}>
-        {SCREENS.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={`pill-opt${screenId === s.id ? " active" : ""}`}
-            onClick={() => setScreenId(s.id)}
-          >
-            {s.label}
-          </button>
-        ))}
+    <div id="app" className="ready">
+      <Sidebar />
+      <div className="main">
+        <Topbar />
+        <Screen />
       </div>
-      <Screen />
     </div>
   );
 }

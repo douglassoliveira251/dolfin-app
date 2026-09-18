@@ -10,6 +10,7 @@ import { fmtDate, fmtMoney } from "../../data/format";
 import { persist } from "../../data/persistence";
 import { useAppStore } from "../../data/store";
 import { CartaoModal } from "./CartaoModal";
+import { ExtratoFaturaModal } from "./ExtratoFaturaModal";
 
 function bandeiraMonoIcon(bandeira: string): CategoryIconName {
   const key = `bandeira${bandeira.charAt(0).toUpperCase()}${bandeira.slice(1)}Mono`;
@@ -23,6 +24,7 @@ export function Cartoes() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [extratoCartaoId, setExtratoCartaoId] = useState<string | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirm();
 
   const cartoesAtivos = data.cartoes.filter((c) => !c.arquivada);
@@ -100,7 +102,7 @@ export function Cartoes() {
                 padding: 16,
                 borderRadius: 16,
               }}
-              onClick={() => showToast("Extrato em breve.")}
+              onClick={() => setExtratoCartaoId(c.id)}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <span style={{ width: 30, height: 18, display: "inline-flex", alignItems: "center", color: corTexto }}>
@@ -147,6 +149,7 @@ export function Cartoes() {
       </div>
 
       {modalOpen && <CartaoModal cartaoId={editingId} onClose={() => setModalOpen(false)} />}
+      {extratoCartaoId && <ExtratoFaturaModal cartaoId={extratoCartaoId} onClose={() => setExtratoCartaoId(null)} />}
       {confirmDialog}
     </div>
   );

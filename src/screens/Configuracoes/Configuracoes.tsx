@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "../../components/icons/Icon";
-import { Modal } from "../../components/Modal";
 import { useConfirm } from "../../components/ConfirmDialog";
+import { SobreModal } from "../../components/SobreModal";
 import { Switch } from "../../components/Switch";
 import { showToast } from "../../components/Toast";
 import { fmtDate } from "../../data/format";
@@ -47,33 +47,7 @@ export function Configuracoes() {
         </div>
       </div>
 
-      {sobreOpen && (
-        <Modal
-          title="Sobre o Dolfin"
-          onClose={() => setSobreOpen(false)}
-          closeOnBackdropClick
-          modalClassName="confirm-box"
-          footer={
-            <>
-              <div />
-              <button type="button" className="btn ghost" onClick={() => setSobreOpen(false)}>
-                Fechar
-              </button>
-            </>
-          }
-        >
-          <p style={{ marginBottom: 10 }}>
-            <strong>Dolfin</strong> — Controle Financeiro Pessoal
-          </p>
-          <p className="mini-note" style={{ marginBottom: 10 }}>
-            Aplicativo com dados salvos diretamente no seu computador via File System Access API.
-          </p>
-          <p className="mini-note" style={{ marginBottom: 4 }}>
-            Versão: 1.11.021
-          </p>
-          <p className="mini-note">Navegador recomendado: Chrome ou Edge.</p>
-        </Modal>
-      )}
+      {sobreOpen && <SobreModal onClose={() => setSobreOpen(false)} />}
     </div>
   );
 }

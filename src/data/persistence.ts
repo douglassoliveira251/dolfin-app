@@ -87,7 +87,12 @@ export async function persist(immediate = false): Promise<void> {
   const { data } = useAppStore.getState();
   data.meta.lastModified = new Date().toISOString();
   clearTimeout(writeTimer);
-  const doWrite = () => writeFileHandle(fileHandle as FileSystemFileHandle, data).then(() => (lastSyncAt = new Date()));
+  const doWrite = () => {
+    useAppStore.getState().setSaving(true);
+    return writeFileHandle(fileHandle as FileSystemFileHandle, data)
+      .then(() => (lastSyncAt = new Date()))
+      .finally(() => useAppStore.getState().setSaving(false));
+  };
   if (immediate) {
     await doWrite();
   } else {

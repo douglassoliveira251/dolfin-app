@@ -35,7 +35,7 @@ export function saldoContaAte(
   return round2(total);
 }
 
-function mesImpactoConta(state: AppState, l: Lancamento): string | null {
+export function mesImpactoConta(state: AppState, l: Lancamento): string | null {
   if (!l.cartaoId) return l.data ? l.data.slice(0, 7) : null;
   const cartao = state.cartoes.find((c) => c.id === l.cartaoId);
   if (!cartao) return l.data ? l.data.slice(0, 7) : null;

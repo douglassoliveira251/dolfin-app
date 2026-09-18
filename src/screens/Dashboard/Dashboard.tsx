@@ -17,6 +17,11 @@ import { contrastIconColor } from "../../data/colors";
 import { diaAnteriorA, ehNegativo, fmtDate, fmtMoney, fmtMoneyIn, monthKey, primeiroDiaMes, ultimoDiaMes } from "../../data/format";
 import type { Lancamento, TipoCategoria } from "../../data/schema";
 import { useAppStore } from "../../data/store";
+import { ExtratoContaModal } from "../Contas/ExtratoContaModal";
+import { ExtratoFaturaModal } from "../Cartoes/ExtratoFaturaModal";
+import { LancamentoModal } from "../Lancamentos/LancamentoModal";
+import { DetalheSaldoPrevistoModal } from "./DetalheSaldoPrevistoModal";
+import { ExtratoKpiModal } from "./ExtratoKpiModal";
 
 const MES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -37,6 +42,7 @@ function contasVisiveis(state: ReturnType<typeof useAppStore.getState>["data"], 
 export function Dashboard() {
   const state = useAppStore((s) => s.data);
   const currentMonth = useAppStore((s) => s.currentMonth);
+  const setScreenId = useAppStore((s) => s.setScreenId);
 
   const [donutCategoriaAtiva, setDonutCategoriaAtiva] = useState<string | null>(null);
   const [donutSelecionado, setDonutSelecionado] = useState<number | null>(null);
@@ -45,6 +51,11 @@ export function Dashboard() {
   const [saudeInfoOpen, setSaudeInfoOpen] = useState(false);
   const [orcPopoverOpen, setOrcPopoverOpen] = useState(false);
   const [lancPopoverOpen, setLancPopoverOpen] = useState(false);
+  const [extratoKpi, setExtratoKpi] = useState<{ tipo: "entrada" | "despesa"; categoriaId?: string | null } | null>(null);
+  const [detalhePrevistoOpen, setDetalhePrevistoOpen] = useState(false);
+  const [extratoContaId, setExtratoContaId] = useState<string | null>(null);
+  const [extratoCartaoInfo, setExtratoCartaoInfo] = useState<{ id: string; mes: string } | null>(null);
+  const [editLancamentoId, setEditLancamentoId] = useState<string | null>(null);
 
   const perfilNome = state.perfil.nome ? state.perfil.nome.split(" ")[0] : "";
 
@@ -206,6 +217,7 @@ export function Dashboard() {
               label={<>Saldo previsto <Icon name="info" size={11} /></>}
               value={fmtMoney(saldoPrevisto)}
               valueTone={ehNegativo(saldoPrevisto) ? "neg" : "neutral"}
+              onClick={() => setDetalhePrevistoOpen(true)}
               sub={(() => {
                 const diffPrevisto = saldoPrevisto - saldoAtual;
                 if (Math.abs(diffPrevisto) < 0.005) return "Sem lançamentos pendentes";
@@ -226,14 +238,14 @@ export function Dashboard() {
                 </span>
               }
             >
-              <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: 105 }}>
+              <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: state.configuracoes.sidebarColapsada ? 150 : 105 }}>
                 <Sparkline valores={resultadoHistorico} cor={ehNegativo(resultadoMes) ? "#AD4B34" : "#2E7D5B"} />
               </div>
             </KpiCard>
           </div>
           <div className="kpi-grid cols4" style={{ marginBottom: 0 }}>
-            <KpiCard icon="kpiArrowDown" iconBgLight="#DFF0E4" iconColorLight="var(--positive)" iconBgDark="#16A34A" label="Receitas" value={fmtMoney(receitas)} valueTone="pos" sub={<>Previsto: <span style={{ color: "var(--positive)", fontWeight: 500 }}>{fmtMoney(receitas + receitasPrevisto)}</span></>} />
-            <KpiCard icon="kpiArrowUp" iconBgLight="#F5E0DC" iconColorLight="var(--negative)" iconBgDark="#DC2626" label="Despesas" value={fmtMoney(despesas)} valueTone="neg" sub={<>Previsto: <span style={{ color: "var(--negative)", fontWeight: 500 }}>{fmtMoney(despesas + despesasPrevisto)}</span></>} />
+            <KpiCard icon="kpiArrowDown" iconBgLight="#DFF0E4" iconColorLight="var(--positive)" iconBgDark="#16A34A" label="Receitas" value={fmtMoney(receitas)} valueTone="pos" onClick={() => setExtratoKpi({ tipo: "entrada" })} sub={<>Previsto: <span style={{ color: "var(--positive)", fontWeight: 500 }}>{fmtMoney(receitas + receitasPrevisto)}</span></>} />
+            <KpiCard icon="kpiArrowUp" iconBgLight="#F5E0DC" iconColorLight="var(--negative)" iconBgDark="#DC2626" label="Despesas" value={fmtMoney(despesas)} valueTone="neg" onClick={() => setExtratoKpi({ tipo: "despesa" })} sub={<>Previsto: <span style={{ color: "var(--negative)", fontWeight: 500 }}>{fmtMoney(despesas + despesasPrevisto)}</span></>} />
             <KpiCard icon="kpiClock" iconBgLight="#DFF0E4" iconColorLight="var(--positive)" iconBgDark="#16A34A" label="Investido no mês" value={fmtMoney(investidoMes)} valueTone={investidoMes < 0 ? "neg" : "neutral"} sub={<><span style={{ color: rentMedia < 0 ? "var(--negative)" : "var(--ink)", fontWeight: 600 }}>{rentMedia.toFixed(1)}%</span> de rentabilidade no mês</>} />
             <KpiCard
               icon="kpiTrend"
@@ -344,6 +356,11 @@ export function Dashboard() {
                     <span style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
                       {cat && <EntityCircle cor={cat.cor} icone={cat.icone} />}
                       <span style={{ fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>{nome}</span>
+                      {donutSelecionadoObj && cat && (
+                        <button type="button" className="btn ghost small" title="Ver detalhes" style={{ flex: "none", padding: "6px 8px" }} onClick={() => setExtratoKpi({ tipo: "despesa", categoriaId: cat!.id })}>
+                          <Icon name="arrowUpRight" size={15} />
+                        </button>
+                      )}
                     </span>
                   );
                 })()}
@@ -360,6 +377,8 @@ export function Dashboard() {
                 if (!donutCategoriaAtiva && temFilhas) {
                   setDonutCategoriaAtiva(catId);
                   setDonutSelecionado(null);
+                } else {
+                  setExtratoKpi({ tipo: "despesa", categoriaId: catId });
                 }
               }}
               categorias={state.categorias}
@@ -385,13 +404,16 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
+            <button type="button" className="btn ghost small" title="Ver todas" style={{ flex: "none", padding: "6px 8px" }} onClick={() => setScreenId("metas")}>
+              <Icon name="arrowUpRight" size={15} />
+            </button>
           </div>
           <div style={{ marginTop: 18 }}>
             {metasAbertas.length ? (
               metasAbertas.map((m) => {
                 const pct = m.valorAlvo > 0 ? Math.min(100, (m.valorAtual / m.valorAlvo) * 100) : 0;
                 return (
-                  <div key={m.id} style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+                  <div key={m.id} style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => setScreenId("metas")}>
                     <EntityCircle cor={m.cor} icone={m.icone} size={38} iconSize={17} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -434,6 +456,9 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
+            <button type="button" className="btn ghost small" title="Ver todas" style={{ flex: "none", padding: "6px 8px" }} onClick={() => setScreenId("contas")}>
+              <Icon name="arrowUpRight" size={15} />
+            </button>
           </div>
           {(() => {
             const contas = contasVisiveis(state, currentMonth);
@@ -450,7 +475,7 @@ export function Dashboard() {
               const atual = saldoContaAte(state, c.id, hoje < fimMes ? hoje : fimMes, true);
               const previsto = saldoPrevistoConta(state, c.id, currentMonth);
               return (
-                <div key={c.id} className="dash-row" style={{ padding: "8px 4px" }}>
+                <div key={c.id} className="dash-row" style={{ padding: "8px 4px" }} onClick={() => setExtratoContaId(c.id)}>
                   <div className="dash-row-main">
                     <span className="dash-icon-circle" style={{ background: c.cor, color: contrastIconColor(c.cor) }}>
                       {(() => {
@@ -494,7 +519,12 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
-            <OrcTabTrigger open={orcPopoverOpen} setOpen={setOrcPopoverOpen} value={dashOrcTab} onChange={setDashOrcTab} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+              <OrcTabTrigger open={orcPopoverOpen} setOpen={setOrcPopoverOpen} value={dashOrcTab} onChange={setDashOrcTab} />
+              <button type="button" className="btn ghost small" title="Ver todas" style={{ flex: "none", padding: "6px 8px" }} onClick={() => setScreenId("orcamento")}>
+                <Icon name="arrowUpRight" size={15} />
+              </button>
+            </div>
           </div>
           <OrcamentoDoMes state={state} currentMonth={currentMonth} dashOrcTab={dashOrcTab} />
         </div>
@@ -512,8 +542,11 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
+            <button type="button" className="btn ghost small" title="Ver todas" style={{ flex: "none", padding: "6px 8px" }} onClick={() => setScreenId("cartoes")}>
+              <Icon name="arrowUpRight" size={15} />
+            </button>
           </div>
-          <CartoesMiniCards state={state} currentMonth={currentMonth} />
+          <CartoesMiniCards state={state} currentMonth={currentMonth} onClickCartao={(cartaoId, mes) => setExtratoCartaoInfo({ id: cartaoId, mes })} />
         </div>
       </div>
 
@@ -531,9 +564,14 @@ export function Dashboard() {
                 </p>
               </div>
             </div>
-            <LancTabTrigger open={lancPopoverOpen} setOpen={setLancPopoverOpen} value={dashTransacoesTab} onChange={setDashTransacoesTab} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "none" }}>
+              <LancTabTrigger open={lancPopoverOpen} setOpen={setLancPopoverOpen} value={dashTransacoesTab} onChange={setDashTransacoesTab} />
+              <button type="button" className="btn ghost small" title="Ver todas" style={{ color: "var(--sidebar-accent)", padding: "6px 8px", flex: "none" }} onClick={() => setScreenId("lancamentos")}>
+                <Icon name="arrowUpRight" size={15} />
+              </button>
+            </div>
           </div>
-          <UltimosLancamentos state={state} tab={dashTransacoesTab} />
+          <UltimosLancamentos state={state} tab={dashTransacoesTab} onClickLancamento={setEditLancamentoId} />
         </div>
 
         <div className="card">
@@ -570,6 +608,12 @@ export function Dashboard() {
           )}
         </div>
       </div>
+
+      {extratoKpi && <ExtratoKpiModal tipo={extratoKpi.tipo} categoriaId={extratoKpi.categoriaId} onClose={() => setExtratoKpi(null)} />}
+      {detalhePrevistoOpen && <DetalheSaldoPrevistoModal onClose={() => setDetalhePrevistoOpen(false)} />}
+      {extratoContaId && <ExtratoContaModal contaId={extratoContaId} onClose={() => setExtratoContaId(null)} />}
+      {extratoCartaoInfo && <ExtratoFaturaModal cartaoId={extratoCartaoInfo.id} mesInicial={extratoCartaoInfo.mes} onClose={() => setExtratoCartaoInfo(null)} />}
+      {editLancamentoId && <LancamentoModal lancamentoId={editLancamentoId} onClose={() => setEditLancamentoId(null)} />}
     </div>
   );
 }
@@ -898,7 +942,15 @@ function OrcamentoDoMes({ state, currentMonth, dashOrcTab }: { state: ReturnType
   );
 }
 
-function CartoesMiniCards({ state, currentMonth }: { state: ReturnType<typeof useAppStore.getState>["data"]; currentMonth: Date }) {
+function CartoesMiniCards({
+  state,
+  currentMonth,
+  onClickCartao,
+}: {
+  state: ReturnType<typeof useAppStore.getState>["data"];
+  currentMonth: Date;
+  onClickCartao: (cartaoId: string, mesKey: string) => void;
+}) {
   const cartoesVisiveis = state.cartoes.filter((c) => c.mostrarNoDashboard !== false);
   if (!cartoesVisiveis.length) {
     return (
@@ -934,7 +986,12 @@ function CartoesMiniCards({ state, currentMonth }: { state: ReturnType<typeof us
         const mesAbrevRef = `${MES_ABREV[mesRefFatura.getMonth()]}/${String(mesRefFatura.getFullYear()).slice(2)}`;
         const corTexto = contrastIconColor(c.cor);
         return (
-          <div key={c.id} className="dash-cartao-mini" style={{ background: c.cor, color: corTexto, borderRadius: 12, padding: "16px 18px", marginBottom: 10 }}>
+          <div
+            key={c.id}
+            className="dash-cartao-mini"
+            style={{ background: c.cor, color: corTexto, borderRadius: 12, padding: "16px 18px", marginBottom: 10, cursor: "pointer" }}
+            onClick={() => onClickCartao(c.id, monthKey(mesRefFatura))}
+          >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <strong style={{ fontSize: 16, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.nome}</strong>
@@ -962,7 +1019,15 @@ function CartoesMiniCards({ state, currentMonth }: { state: ReturnType<typeof us
   );
 }
 
-function UltimosLancamentos({ state, tab }: { state: ReturnType<typeof useAppStore.getState>["data"]; tab: "todas" | "entrada" | "saida" }) {
+function UltimosLancamentos({
+  state,
+  tab,
+  onClickLancamento,
+}: {
+  state: ReturnType<typeof useAppStore.getState>["data"];
+  tab: "todas" | "entrada" | "saida";
+  onClickLancamento: (id: string) => void;
+}) {
   const todosLancsRaw = state.lancamentos.filter((l) => l.tipo === "entrada" || l.tipo === "despesa");
   const jaVistoGrupo = new Set<string>();
   const todosLancs: (Lancamento & { _valorExibicao: number; _isParceladoAgrupado?: boolean })[] = [];
@@ -1002,7 +1067,7 @@ function UltimosLancamentos({ state, tab }: { state: ReturnType<typeof useAppSto
         const isMultiCat = Array.isArray(l.categoriasSplits) && l.categoriasSplits.length > 1;
         const nomeExibido = l._isParceladoAgrupado ? (l.nome || "").replace(/\s*\(\d+\/\d+\)\s*$/, "") : l.nome;
         return (
-          <div key={l.id} className="dash-row" style={{ padding: "6px 4px" }}>
+          <div key={l.id} className="dash-row" style={{ padding: "6px 4px" }} onClick={() => onClickLancamento(l.id)}>
             <div className="dash-row-main">
               {isMultiCat ? (
                 <span className="cat-circle" style={{ background: "#4A473E", color: "#fff" }}>

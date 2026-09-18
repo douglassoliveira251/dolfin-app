@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { gerarOcorrenciasRecorrencia } from "./calculations/recorrencia";
 import { nowLocalIso } from "./format";
 import {
   type Aporte,
@@ -24,6 +25,19 @@ function inicioMesAtual(): Date {
   return d;
 }
 
+export type ScreenId =
+  | "dashboard"
+  | "lancamentos"
+  | "contas"
+  | "cartoes"
+  | "categorias"
+  | "metas"
+  | "investimentos"
+  | "orcamento"
+  | "tags"
+  | "relatorios"
+  | "configuracoes";
+
 interface AppStore {
   /** Dados persistidos no arquivo JSON conectado. */
   data: AppState;
@@ -33,10 +47,16 @@ interface AppStore {
   valoresOcultos: boolean;
   /** Mês exibido nas telas com navegação por mês (não persistido). */
   currentMonth: Date;
+  /** Tela visível na navegação provisória/real (não persistido). */
+  screenId: ScreenId;
+  /** true enquanto uma escrita no arquivo está em andamento (não persistido). */
+  saving: boolean;
   hydrate: (data: AppState) => void;
   setConnected: (connected: boolean) => void;
   setValoresOcultos: (value: boolean) => void;
   setCurrentMonth: (date: Date) => void;
+  setScreenId: (id: ScreenId) => void;
+  setSaving: (saving: boolean) => void;
 
   /** Retorna o id da tag criada, para poder selecioná-la imediatamente (ex: TagsInput). */
   addTag: (nome: string, cor: string) => string;
@@ -85,6 +105,15 @@ interface AppStore {
   toggleEfetivadoLancamento: (id: string) => void;
   /** Aplica um patch a todos os membros de uma série recorrente (exceto o id informado). */
   updateLancamentosSerie: (grupoId: string, patch: Partial<Lancamento>, excludeId?: string) => void;
+  /**
+   * Ajusta o nº de parcelas de uma série já existente: gera as parcelas que faltam (se aumentou)
+   * ou remove as excedentes ainda não efetivadas (se diminuiu), preservando o histórico já pago.
+   */
+  resizeLancamentosSerieParcelas: (grupoId: string, novoTotal: number) => void;
+  /** Marca os lançamentos de uma fatura como pagos; se valorPago < total, cria o lançamento de saldo residual na próxima fatura. */
+  pagarFatura: (itensIds: string[], dataPagamento: string, grupoPagamento: string, residual: Omit<Lancamento, "id"> | null) => void;
+  /** Desfaz o pagamento de uma fatura: volta os itens a pendente e remove os lançamentos de saldo residual gerados por ele. */
+  reabrirFatura: (itensIds: string[]) => void;
   updateConfiguracoes: (patch: Partial<Configuracoes>) => void;
 }
 
@@ -97,10 +126,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
   connected: false,
   valoresOcultos: false,
   currentMonth: inicioMesAtual(),
+  screenId: "dashboard",
+  saving: false,
   hydrate: (data) => set({ data, connected: true }),
   setConnected: (connected) => set({ connected }),
   setValoresOcultos: (valoresOcultos) => set({ valoresOcultos }),
   setCurrentMonth: (currentMonth) => set({ currentMonth }),
+  setScreenId: (screenId) => set({ screenId }),
+  setSaving: (saving) => set({ saving }),
 
   addTag: (nome, cor) => {
     const id = uid("tag");
@@ -410,6 +443,53 @@ export const useAppStore = create<AppStore>((set, get) => ({
         ),
       },
     })),
+
+  resizeLancamentosSerieParcelas: (grupoId, novoTotal) =>
+    set((s) => {
+      const membrosSerie = s.data.lancamentos.filter((l) => l.recorrencia.ativa && l.recorrencia.grupoId === grupoId);
+      if (!membrosSerie.length) return s;
+      const maxParcelaAtual = Math.max(...membrosSerie.map((l) => (l.recorrencia.ativa ? l.recorrencia.parcelaAtual || 0 : 0)));
+      if (novoTotal > maxParcelaAtual) {
+        const ultimoMembro = [...membrosSerie].sort(
+          (a, b) => (b.recorrencia.ativa ? b.recorrencia.parcelaAtual || 0 : 0) - (a.recorrencia.ativa ? a.recorrencia.parcelaAtual || 0 : 0),
+        )[0];
+        if (!ultimoMembro.recorrencia.ativa) return s;
+        const faltantes = novoTotal - maxParcelaAtual;
+        const baseParaGerar: Lancamento = { ...ultimoMembro, recorrencia: { ...ultimoMembro.recorrencia, totalParcelas: novoTotal } };
+        const novos = gerarOcorrenciasRecorrencia(baseParaGerar, faltantes);
+        return { data: { ...s.data, lancamentos: [...s.data.lancamentos, ...novos] } };
+      }
+      if (novoTotal < maxParcelaAtual) {
+        return {
+          data: {
+            ...s.data,
+            lancamentos: s.data.lancamentos.filter(
+              (l) => !(l.recorrencia.ativa && l.recorrencia.grupoId === grupoId && (l.recorrencia.parcelaAtual || 0) > novoTotal && !l.efetivado),
+            ),
+          },
+        };
+      }
+      return s;
+    }),
+
+  pagarFatura: (itensIds, dataPagamento, grupoPagamento, residual) =>
+    set((s) => {
+      const idsSet = new Set(itensIds);
+      const lancamentos = s.data.lancamentos.map((l) =>
+        idsSet.has(l.id) ? { ...l, efetivado: true, dataEfetivacao: dataPagamento, grupoPagamento } : l,
+      );
+      return { data: { ...s.data, lancamentos: residual ? [...lancamentos, { ...residual, id: uid("lanc") }] : lancamentos } };
+    }),
+
+  reabrirFatura: (itensIds) =>
+    set((s) => {
+      const idsSet = new Set(itensIds);
+      const gruposPagamento = new Set(s.data.lancamentos.filter((l) => idsSet.has(l.id) && l.grupoPagamento).map((l) => l.grupoPagamento as string));
+      const lancamentos = s.data.lancamentos
+        .filter((l) => !(l.origemPagamentoGrupo && gruposPagamento.has(l.origemPagamentoGrupo)))
+        .map((l) => (idsSet.has(l.id) ? { ...l, efetivado: false, grupoPagamento: null } : l));
+      return { data: { ...s.data, lancamentos } };
+    }),
 
   updateConfiguracoes: (patch) =>
     set((s) => ({ data: { ...s.data, configuracoes: { ...s.data.configuracoes, ...patch } } })),
