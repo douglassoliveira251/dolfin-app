@@ -194,6 +194,7 @@ export interface Configuracoes {
   ocultarValoresAoAbrir: boolean;
   sidebarColapsada: boolean;
   fluxoCaixaPeriodo: string;
+  ultimoBackup: string | null;
 }
 
 export interface AppState {
@@ -231,6 +232,7 @@ export function defaultState(): AppState {
       ocultarValoresAoAbrir: false,
       sidebarColapsada: false,
       fluxoCaixaPeriodo: "30D",
+      ultimoBackup: null,
     },
     contas: [],
     cartoes: [],

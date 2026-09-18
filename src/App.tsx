@@ -5,6 +5,7 @@ import { createNew, openExisting, tryReconnect } from "./data/persistence";
 import { useAppStore } from "./data/store";
 import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Categorias } from "./screens/Categorias/Categorias";
+import { Configuracoes } from "./screens/Configuracoes/Configuracoes";
 import { Contas } from "./screens/Contas/Contas";
 import { Investimentos } from "./screens/Investimentos/Investimentos";
 import { Lancamentos } from "./screens/Lancamentos/Lancamentos";
@@ -91,6 +92,7 @@ const SCREENS = [
   { id: "contas", label: "Contas", Component: Contas },
   { id: "cartoes", label: "Cartões", Component: Cartoes },
   { id: "categorias", label: "Categorias", Component: Categorias },
+  { id: "configuracoes", label: "Configurações", Component: Configuracoes },
   { id: "investimentos", label: "Investimentos", Component: Investimentos },
   { id: "lancamentos", label: "Lançamentos", Component: Lancamentos },
   { id: "metas", label: "Metas", Component: Metas },
@@ -124,6 +126,10 @@ function ConnectedApp() {
 
 function App() {
   const connected = useAppStore((s) => s.connected);
+  const temaEscuro = useAppStore((s) => s.data.configuracoes.temaEscuro);
+  useEffect(() => {
+    document.body.classList.toggle("dark-theme", temaEscuro);
+  }, [temaEscuro]);
   return (
     <>
       {connected ? <ConnectedApp /> : <ConnectScreen />}

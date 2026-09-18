@@ -78,6 +78,10 @@ export function getLastSyncAt(): Date | null {
   return lastSyncAt;
 }
 
+export function getConnectedFileName(): string | null {
+  return fileHandle?.name ?? null;
+}
+
 export async function persist(immediate = false): Promise<void> {
   if (!fileHandle) return;
   const { data } = useAppStore.getState();
