@@ -1,5 +1,18 @@
 import { create } from "zustand";
-import { type AppState, type Cartao, type Categoria, type Conta, type Meta, type Orcamento, type TipoMovimentoMeta, defaultState, uid } from "./schema";
+import {
+  type Aporte,
+  type AppState,
+  type Ativo,
+  type AtualizacaoAtivo,
+  type Cartao,
+  type Categoria,
+  type Conta,
+  type Meta,
+  type Orcamento,
+  type TipoMovimentoMeta,
+  defaultState,
+  uid,
+} from "./schema";
 
 function inicioMesAtual(): Date {
   const d = new Date();
@@ -22,7 +35,8 @@ interface AppStore {
   setValoresOcultos: (value: boolean) => void;
   setCurrentMonth: (date: Date) => void;
 
-  addTag: (nome: string, cor: string) => void;
+  /** Retorna o id da tag criada, para poder selecioná-la imediatamente (ex: TagsInput). */
+  addTag: (nome: string, cor: string) => string;
   renameTag: (id: string, nome: string) => void;
   deleteTag: (id: string) => void;
 
@@ -50,6 +64,16 @@ interface AppStore {
   saveOrcamento: (orcamento: Orcamento) => void;
   addOrcamentos: (orcamentos: Orcamento[]) => void;
   deleteOrcamento: (id: string) => void;
+
+  saveAtivo: (ativo: Ativo) => void;
+  deleteAtivoComHistorico: (id: string) => void;
+
+  saveAporte: (aporte: Aporte) => void;
+  deleteAporte: (id: string) => void;
+  registrarTransferenciaAtivo: (origemId: string, destinoId: string, valor: number, data: string) => void;
+
+  saveAtualizacaoAtivo: (atualizacao: AtualizacaoAtivo) => void;
+  deleteAtualizacaoAtivo: (id: string) => void;
 }
 
 function recalcularValorAtual(movimentos: Meta["movimentos"]): number {
@@ -66,8 +90,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setValoresOcultos: (valoresOcultos) => set({ valoresOcultos }),
   setCurrentMonth: (currentMonth) => set({ currentMonth }),
 
-  addTag: (nome, cor) =>
-    set((s) => ({ data: { ...s.data, tags: [...s.data.tags, { id: uid("tag"), nome, cor }] } })),
+  addTag: (nome, cor) => {
+    const id = uid("tag");
+    set((s) => ({ data: { ...s.data, tags: [...s.data.tags, { id, nome, cor }] } }));
+    return id;
+  },
 
   renameTag: (id, nome) =>
     set((s) => ({
@@ -243,4 +270,85 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   deleteOrcamento: (id) =>
     set((s) => ({ data: { ...s.data, orcamentos: s.data.orcamentos.filter((o) => o.id !== id) } })),
+
+  saveAtivo: (ativo) =>
+    set((s) => {
+      const idx = s.data.investimentos.ativos.findIndex((a) => a.id === ativo.id);
+      const ativos =
+        idx >= 0 ? s.data.investimentos.ativos.map((a, i) => (i === idx ? ativo : a)) : [...s.data.investimentos.ativos, ativo];
+      return { data: { ...s.data, investimentos: { ...s.data.investimentos, ativos } } };
+    }),
+
+  deleteAtivoComHistorico: (id) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        investimentos: {
+          ativos: s.data.investimentos.ativos.filter((a) => a.id !== id),
+          aportes: s.data.investimentos.aportes.filter((a) => a.ativoId !== id),
+          atualizacoes: s.data.investimentos.atualizacoes.filter((a) => a.ativoId !== id),
+        },
+      },
+    })),
+
+  saveAporte: (aporte) =>
+    set((s) => {
+      const idx = s.data.investimentos.aportes.findIndex((a) => a.id === aporte.id);
+      const aportes =
+        idx >= 0 ? s.data.investimentos.aportes.map((a, i) => (i === idx ? aporte : a)) : [...s.data.investimentos.aportes, aporte];
+      return { data: { ...s.data, investimentos: { ...s.data.investimentos, aportes } } };
+    }),
+
+  deleteAporte: (id) =>
+    set((s) => {
+      const aporteRemovido = s.data.investimentos.aportes.find((a) => a.id === id);
+      const lancamentos = aporteRemovido?.lancamentoVinculadoId
+        ? s.data.lancamentos.filter((l) => l.id !== aporteRemovido.lancamentoVinculadoId)
+        : s.data.lancamentos;
+      return {
+        data: {
+          ...s.data,
+          lancamentos,
+          investimentos: { ...s.data.investimentos, aportes: s.data.investimentos.aportes.filter((a) => a.id !== id) },
+        },
+      };
+    }),
+
+  registrarTransferenciaAtivo: (origemId, destinoId, valor, data) =>
+    set((s) => {
+      const grupoId = uid("transf");
+      const criadoEm = new Date().toISOString();
+      const novoResgate: Aporte = {
+        id: uid("aporte"), ativoId: origemId, data, valor, tipo: "resgate", categoriaId: null, tagsIds: [],
+        contaId: null, transferenciaGrupoId: grupoId, lancamentoVinculadoId: null, criadoEm, efetivado: true,
+      };
+      const novoAporte: Aporte = {
+        id: uid("aporte"), ativoId: destinoId, data, valor, tipo: "aporte", categoriaId: null, tagsIds: [],
+        contaId: null, transferenciaGrupoId: grupoId, lancamentoVinculadoId: null, criadoEm, efetivado: true,
+      };
+      return {
+        data: {
+          ...s.data,
+          investimentos: { ...s.data.investimentos, aportes: [...s.data.investimentos.aportes, novoResgate, novoAporte] },
+        },
+      };
+    }),
+
+  saveAtualizacaoAtivo: (atualizacao) =>
+    set((s) => {
+      const idx = s.data.investimentos.atualizacoes.findIndex((a) => a.id === atualizacao.id);
+      const atualizacoes =
+        idx >= 0
+          ? s.data.investimentos.atualizacoes.map((a, i) => (i === idx ? atualizacao : a))
+          : [...s.data.investimentos.atualizacoes, atualizacao];
+      return { data: { ...s.data, investimentos: { ...s.data.investimentos, atualizacoes } } };
+    }),
+
+  deleteAtualizacaoAtivo: (id) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        investimentos: { ...s.data.investimentos, atualizacoes: s.data.investimentos.atualizacoes.filter((a) => a.id !== id) },
+      },
+    })),
 }));

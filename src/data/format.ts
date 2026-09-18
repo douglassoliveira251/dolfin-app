@@ -60,6 +60,16 @@ export function ultimoDiaMes(monthDate: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+export function primeiroDiaMes(monthDate: Date): string {
+  return monthKey(monthDate) + "-01";
+}
+
+export function diaAnteriorA(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export function sortByData<T extends { data: string; hora?: string }>(itens: T[], ordenacaoDecrescente: boolean): T[] {
   const dir = ordenacaoDecrescente === false ? 1 : -1;
   return [...itens].sort((a, b) => {

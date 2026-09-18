@@ -6,6 +6,7 @@ import { useAppStore } from "./data/store";
 import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Categorias } from "./screens/Categorias/Categorias";
 import { Contas } from "./screens/Contas/Contas";
+import { Investimentos } from "./screens/Investimentos/Investimentos";
 import { Metas } from "./screens/Metas/Metas";
 import { Orcamento } from "./screens/Orcamento/Orcamento";
 import { Tags } from "./screens/Tags/Tags";
@@ -88,6 +89,7 @@ const SCREENS = [
   { id: "contas", label: "Contas", Component: Contas },
   { id: "cartoes", label: "Cartões", Component: Cartoes },
   { id: "categorias", label: "Categorias", Component: Categorias },
+  { id: "investimentos", label: "Investimentos", Component: Investimentos },
   { id: "metas", label: "Metas", Component: Metas },
   { id: "orcamento", label: "Orçamento", Component: Orcamento },
   { id: "tags", label: "Tags", Component: Tags },
