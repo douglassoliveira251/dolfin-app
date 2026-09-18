@@ -55,6 +55,15 @@ export function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function nowTimeStr(): string {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+export function nowLocalIso(): string {
+  return todayStr() + "T" + nowTimeStr();
+}
+
 export function ultimoDiaMes(monthDate: Date): string {
   const d = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
   return d.toISOString().slice(0, 10);

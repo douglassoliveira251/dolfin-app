@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { nowLocalIso } from "./format";
 import {
   type Aporte,
   type AppState,
@@ -6,7 +7,9 @@ import {
   type AtualizacaoAtivo,
   type Cartao,
   type Categoria,
+  type Configuracoes,
   type Conta,
+  type Lancamento,
   type Meta,
   type Orcamento,
   type TipoMovimentoMeta,
@@ -74,6 +77,15 @@ interface AppStore {
 
   saveAtualizacaoAtivo: (atualizacao: AtualizacaoAtivo) => void;
   deleteAtualizacaoAtivo: (id: string) => void;
+
+  saveLancamento: (lancamento: Lancamento) => void;
+  addLancamentos: (lancamentos: Lancamento[]) => void;
+  deleteLancamento: (id: string) => void;
+  deleteLancamentosSerie: (grupoId: string, fromDate?: string) => void;
+  toggleEfetivadoLancamento: (id: string) => void;
+  /** Aplica um patch a todos os membros de uma série recorrente (exceto o id informado). */
+  updateLancamentosSerie: (grupoId: string, patch: Partial<Lancamento>, excludeId?: string) => void;
+  updateConfiguracoes: (patch: Partial<Configuracoes>) => void;
 }
 
 function recalcularValorAtual(movimentos: Meta["movimentos"]): number {
@@ -351,4 +363,54 @@ export const useAppStore = create<AppStore>((set, get) => ({
         investimentos: { ...s.data.investimentos, atualizacoes: s.data.investimentos.atualizacoes.filter((a) => a.id !== id) },
       },
     })),
+
+  saveLancamento: (lancamento) =>
+    set((s) => {
+      const idx = s.data.lancamentos.findIndex((l) => l.id === lancamento.id);
+      const lancamentos = idx >= 0 ? s.data.lancamentos.map((l, i) => (i === idx ? lancamento : l)) : [...s.data.lancamentos, lancamento];
+      return { data: { ...s.data, lancamentos } };
+    }),
+
+  addLancamentos: (lancamentos) =>
+    set((s) => ({ data: { ...s.data, lancamentos: [...s.data.lancamentos, ...lancamentos] } })),
+
+  deleteLancamento: (id) =>
+    set((s) => ({ data: { ...s.data, lancamentos: s.data.lancamentos.filter((l) => l.id !== id) } })),
+
+  deleteLancamentosSerie: (grupoId, fromDate) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        lancamentos: s.data.lancamentos.filter((l) => {
+          if (!l.recorrencia.ativa || l.recorrencia.grupoId !== grupoId) return true;
+          if (fromDate) return l.data < fromDate;
+          return false;
+        }),
+      },
+    })),
+
+  toggleEfetivadoLancamento: (id) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        lancamentos: s.data.lancamentos.map((l) => {
+          if (l.id !== id) return l;
+          const efetivado = !l.efetivado;
+          return { ...l, efetivado, dataEfetivacao: efetivado && !l.cartaoId ? nowLocalIso() : l.dataEfetivacao };
+        }),
+      },
+    })),
+
+  updateLancamentosSerie: (grupoId, patch, excludeId) =>
+    set((s) => ({
+      data: {
+        ...s.data,
+        lancamentos: s.data.lancamentos.map((l) =>
+          l.recorrencia.ativa && l.recorrencia.grupoId === grupoId && l.id !== excludeId ? { ...l, ...patch } : l,
+        ),
+      },
+    })),
+
+  updateConfiguracoes: (patch) =>
+    set((s) => ({ data: { ...s.data, configuracoes: { ...s.data.configuracoes, ...patch } } })),
 }));
