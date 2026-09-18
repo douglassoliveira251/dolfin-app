@@ -7,6 +7,7 @@ import { Cartoes } from "./screens/Cartoes/Cartoes";
 import { Categorias } from "./screens/Categorias/Categorias";
 import { Configuracoes } from "./screens/Configuracoes/Configuracoes";
 import { Contas } from "./screens/Contas/Contas";
+import { Dashboard } from "./screens/Dashboard/Dashboard";
 import { Investimentos } from "./screens/Investimentos/Investimentos";
 import { Lancamentos } from "./screens/Lancamentos/Lancamentos";
 import { Metas } from "./screens/Metas/Metas";
@@ -89,6 +90,7 @@ function ConnectScreen() {
  * Será substituída pela sidebar real quando mais telas existirem.
  */
 const SCREENS = [
+  { id: "dashboard", label: "Dashboard", Component: Dashboard },
   { id: "contas", label: "Contas", Component: Contas },
   { id: "cartoes", label: "Cartões", Component: Cartoes },
   { id: "categorias", label: "Categorias", Component: Categorias },
