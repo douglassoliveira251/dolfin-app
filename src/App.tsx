@@ -10,6 +10,7 @@ import { Investimentos } from "./screens/Investimentos/Investimentos";
 import { Lancamentos } from "./screens/Lancamentos/Lancamentos";
 import { Metas } from "./screens/Metas/Metas";
 import { Orcamento } from "./screens/Orcamento/Orcamento";
+import { Relatorios } from "./screens/Relatorios/Relatorios";
 import { Tags } from "./screens/Tags/Tags";
 
 function ConnectScreen() {
@@ -94,6 +95,7 @@ const SCREENS = [
   { id: "lancamentos", label: "Lançamentos", Component: Lancamentos },
   { id: "metas", label: "Metas", Component: Metas },
   { id: "orcamento", label: "Orçamento", Component: Orcamento },
+  { id: "relatorios", label: "Relatórios", Component: Relatorios },
   { id: "tags", label: "Tags", Component: Tags },
 ] as const;
 
